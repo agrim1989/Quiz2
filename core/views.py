@@ -13,6 +13,9 @@ from .serializers import (
 
 # Create your views here.
 
+def dashboard(request):
+    return render(request, 'core/dashboard.html')
+
 class DepartmentViewSet(viewsets.ModelViewSet):
     queryset = Department.objects.all()
     serializer_class = DepartmentSerializer

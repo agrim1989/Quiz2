@@ -1,0 +1,151 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Dashboard - Employee Management System{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-6 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title">Department Performance Overview</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="departmentPerformanceChart"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title">Attendance Summary</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="attendanceChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-12 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title">Employee Performance Trends</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="performanceTrendChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Function to fetch data from API
+async function fetchData(url) {
+    const response = await fetch(url);
+    return await response.json();
+}
+
+// Function to initialize charts
+async function initializeCharts() {
+    // Fetch data
+    const performanceData = await fetchData('/api/performance/department_analytics/');
+    const attendanceData = await fetchData('/api/attendance/department_summary/');
+    const employeeData = await fetchData('/api/employees/');
+
+    // Department Performance Chart
+    const deptCtx = document.getElementById('departmentPerformanceChart').getContext('2d');
+    new Chart(deptCtx, {
+        type: 'bar',
+        data: {
+            labels: performanceData.map(d => d.employee__department__name),
+            datasets: [{
+                label: 'Average Performance Score',
+                data: performanceData.map(d => d.overall_avg),
+                backgroundColor: 'rgba(54, 162, 235, 0.5)',
+                borderColor: 'rgba(54, 162, 235, 1)',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    max: 5
+                }
+            }
+        }
+    });
+
+    // Attendance Chart
+    const attendanceCtx = document.getElementById('attendanceChart').getContext('2d');
+    new Chart(attendanceCtx, {
+        type: 'pie',
+        data: {
+            labels: ['Present', 'Absent', 'Late'],
+            datasets: [{
+                data: [
+                    attendanceData.reduce((sum, d) => sum + d.present_count, 0),
+                    attendanceData.reduce((sum, d) => sum + d.absent_count, 0),
+                    attendanceData.reduce((sum, d) => sum + d.late_count, 0)
+                ],
+                backgroundColor: [
+                    'rgba(75, 192, 192, 0.5)',
+                    'rgba(255, 99, 132, 0.5)',
+                    'rgba(255, 206, 86, 0.5)'
+                ],
+                borderColor: [
+                    'rgba(75, 192, 192, 1)',
+                    'rgba(255, 99, 132, 1)',
+                    'rgba(255, 206, 86, 1)'
+                ],
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true
+        }
+    });
+
+    // Performance Trend Chart
+    const trendCtx = document.getElementById('performanceTrendChart').getContext('2d');
+    new Chart(trendCtx, {
+        type: 'line',
+        data: {
+            labels: employeeData.map(e => e.user.first_name + ' ' + e.user.last_name),
+            datasets: [{
+                label: 'Productivity',
+                data: performanceData.map(d => d.avg_productivity),
+                borderColor: 'rgba(75, 192, 192, 1)',
+                tension: 0.1
+            }, {
+                label: 'Quality',
+                data: performanceData.map(d => d.avg_quality),
+                borderColor: 'rgba(54, 162, 235, 1)',
+                tension: 0.1
+            }, {
+                label: 'Teamwork',
+                data: performanceData.map(d => d.avg_teamwork),
+                borderColor: 'rgba(255, 206, 86, 1)',
+                tension: 0.1
+            }]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    max: 5
+                }
+            }
+        }
+    });
+}
+
+// Initialize charts when the page loads
+document.addEventListener('DOMContentLoaded', initializeCharts);
+</script>
+{% endblock %} 
